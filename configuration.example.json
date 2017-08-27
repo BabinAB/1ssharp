@@ -3,9 +3,48 @@
   "version":    "1.1.0",
   "output":     "./../buildapp", //output compile application
   "database": {
-    //TODO config
+    /* "type" : "mysql",
+    "host": "localhost",
+    "port":null,//default
+    "basename": "sample",
+    "username":"root",
+    "password":"admin" */
+    "type" : "sqllite",
+    "path": "./db.sqlite"
   },
-  "models" : [
-    //TODO
-  ]
+  "models" : [{
+      "name": "user",
+      "fields": [{
+          "name": "id",
+          "type": "uint",
+          "autoincrement": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "length": 255
+       },{
+          "name": "email",
+          "type": "string",
+          "length": 255
+        },{
+          "name": "password",
+          "type": "string",
+          "length": 255
+        }]
+
+  }, {
+      "name" : "role",
+     "fields": [{
+      "name": "id",
+      "type": "uint",
+      "autoincrement": true
+     },
+      {
+        "name": "name",
+        "type": "string",
+        "length": 255
+      }
+
+  }]
 }
