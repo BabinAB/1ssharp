@@ -1,0 +1,11 @@
+{
+  "language":   "php", //php|node|python|etc
+  "version":    "1.1.0",
+  "output":     "./../buildapp", //output compile application
+  "database": {
+    //TODO config
+  },
+  "models" : [
+    //TODO
+  ]
+}
