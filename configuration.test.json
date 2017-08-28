@@ -5,5 +5,8 @@
   "database": {
   },
   "models" : [
-  ]
+  ],
+  "server": {
+    "port": 8090
+  }
 }

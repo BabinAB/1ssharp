@@ -17,25 +17,33 @@ func main()  {
 	flag.Parse()
 
 	fmt.Println("Configure File: ", *configureFile)
-	configuration := loadConfuguration(* configureFile)
+	configuration := loadConfiguration(* configureFile)
 
 	fmt.Println(configuration)
 
-	//TODO add check type by configuration mode
-	//configuration.Language == 'php'
-	var builder lib1ssarp_php.ConfigurationBuilderPHP
+
+	var builder lib1ssarp.ConfigurationBuilder
+	switch configuration.Language {
+		case "php":
+			builder = new(lib1ssarp_php.ConfigurationBuilderPHP)
+
+		default:
+			fmt.Printf("Configuration for language: %s not found\n", configuration.Language)
+			os.Exit(1)
+	}
+
 	builder.Build(configuration)
 }
 
 
-func loadConfuguration(configureFile string)lib1ssarp.Configuration {
+func loadConfiguration(configureFile string)lib1ssarp.Configuration {
 	file, e := ioutil.ReadFile(configureFile)
 	if e != nil {
 		fmt.Printf("File error: %v\n", e)
 		os.Exit(1)
 	}
 
-	//fmt.Printf("%s\n", string(file))
+	fmt.Printf("Load Configure File: %s\n", configureFile)
 
 	var configuration lib1ssarp.Configuration
 	e = json.Unmarshal(file, &configuration)
