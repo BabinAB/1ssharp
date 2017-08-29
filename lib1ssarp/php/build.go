@@ -41,6 +41,13 @@ func (cb ConfigurationBuilderPHP)  BuildFiles(){
 }
 
 
+func (cb ConfigurationBuilderPHP) RunServer(c lib1ssarp.Configuration) {
+	fmt.Println("Start Server ...")
+	s := Server{c}
+	s.Launch()
+}
+
+
 /**
 Паристся шаблон и сохраняется в файл
 TODO move to own package

@@ -10,9 +10,14 @@ import (
 	"./lib1ssarp/php"
 )
 
+
+const COMMAND_BUILD  = "build"
+const COMMAND_RUN_SERV  = "run"
+
 func main()  {
 
 	configureFile := flag.String("config", "configuration.test.json", "File configuration")
+	command := flag.String("command", "", "build | run")
 
 	flag.Parse()
 
@@ -32,7 +37,18 @@ func main()  {
 			os.Exit(1)
 	}
 
-	builder.Build(configuration)
+	//type execute
+	switch *command {
+	case COMMAND_BUILD:
+		builder.Build(configuration)
+	case COMMAND_RUN_SERV:
+		builder.RunServer(configuration)
+	default:
+		builder.Build(configuration)
+		builder.RunServer(configuration)
+	}
+
+
 }
 
 
