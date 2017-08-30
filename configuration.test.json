@@ -3,8 +3,34 @@
   "version":    "1.1.0",
   "output":     "./buildapp",
   "database": {
+    "type" : "mysql",
+    "host": "localhost",
+    "basename": "sample",
+    "username":"root",
+    "password":"admin"
   },
   "models" : [
+    {
+      "name": "user",
+      "fields": [{
+        "name": "id",
+        "type": "uint",
+        "autoincrement": true
+      },
+        {
+          "name": "name",
+          "type": "string",
+          "length": 255
+        },{
+          "name": "email",
+          "type": "string",
+          "length": 255
+        },{
+          "name": "password",
+          "type": "string",
+          "length": 255
+        }]
+    }
   ],
   "server": {
     "port": 8090

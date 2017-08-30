@@ -11,7 +11,9 @@ type Configuration struct {
 	Language string `language`
 	Version string
 	Output string
+	Database Database
 	Server Server
+	Models []Model
 }
 
 func (c Configuration) String () string {
@@ -42,21 +44,44 @@ func (s Server) Address () string {
 
 //Server end
 
-type Models struct {
-	models []Model
+
+//Database
+type Database struct {
+	Type string `mysql` //mysql | sqlite
+	Host string `localhost`
+	Port uint `3306`
+	Basename string
+	Username string
+	Password string
+	Path string 	//for  sqlite ./db.sqlite
 }
 
+//Database end
+
+//Model
 type Model struct {
 	Name string
-	fields []Field
+	Fields []Field
 }
 
+func (m Model) String() string {
+	return fmt.Sprintf("Model{Name: %s, FieldLen: %d}", m.Name, len(m.Fields))
+}
+//Model end
+
+
+//Field
 type Field struct {
 	Name string
 	Type string
 	Autoincrement bool
 	Length uint
 }
+
+func (f Field) String() string {
+	return fmt.Sprintf("Field{Name: %s, Type: %s}", f.Name, f.Type)
+}
+//Field end
 
 
 

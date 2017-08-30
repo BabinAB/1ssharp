@@ -2,3 +2,6 @@
 .idea
 
 1ssharp
+
+pkg/
+src/

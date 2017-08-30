@@ -30,6 +30,22 @@ func (cb ConfigurationBuilderPHP)  BuildDataBase(){
 	//TODO create data base
 
 	fmt.Println("Create data base: not yet")
+
+
+	for _, m := range cb.Config.Models {
+
+
+		fmt.Println(m)
+
+
+
+		t := lib1ssarp.Table{cb.Config.Database, m}
+		if !t.Exists() {
+			t.Create()
+		} else {
+			t.Update()
+		}
+	}
 }
 
 
