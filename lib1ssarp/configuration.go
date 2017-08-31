@@ -72,16 +72,29 @@ func (m Model) String() string {
 
 //Field
 type Field struct {
-	Name string
+	Title string //Title for view label
+	Name string  //Name for DB field
 	Type string
 	Autoincrement bool
-	Length uint
+	Length uint //Length for string type
+	Refer ReferField
 }
 
 func (f Field) String() string {
 	return fmt.Sprintf("Field{Name: %s, Type: %s}", f.Name, f.Type)
 }
 //Field end
+
+
+//Refer
+type ReferField struct {
+	Name string
+}
+
+func (r ReferField) String() string {
+	return fmt.Sprintf("ReferField{Name: %s}",  r.Name)
+}
+//Refer end
 
 
 

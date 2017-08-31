@@ -29,6 +29,10 @@
           "name": "password",
           "type": "string",
           "length": 255
+        },{
+          "name": "phone",
+          "type": "string",
+          "length": 255
         }]
     }
   ],

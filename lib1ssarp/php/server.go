@@ -17,6 +17,8 @@ const METHOD_POST = "POST"
 const METHOD_PUT = "PUT"
 const METHOD_DELETE = "DELETE"
 
+const API_PREFIX = "api"
+
 
 var regUriAll *regexp.Regexp
 var regUriOne *regexp.Regexp
@@ -24,18 +26,19 @@ var regUriOne *regexp.Regexp
 
 func init()  {
 	var e error
-	regUriAll, e = regexp.Compile(`/api/([a-zA-Z]+)/?([a-zA-Z/]+)?$`)
+	regUriAll, e = regexp.Compile(`/` + API_PREFIX + `/([a-zA-Z]+)/?([a-zA-Z/]+)?$`)
 	if e != nil {
 		panic(e)
 	}
 
-	regUriOne, e = regexp.Compile(`/api/([a-zA-Z]+)/([0-9]+)/?([a-zA-Z/]+)?$`)
+	regUriOne, e = regexp.Compile(`/` + API_PREFIX + `/([a-zA-Z]+)/([0-9]+)/?([a-zA-Z/]+)?$`)
 	if e != nil {
 		panic(e)
 	}
 
 }
 
+//Server
 type Server struct {
 	Config lib1ssarp.Configuration
 }
@@ -95,7 +98,16 @@ func (s Server) all(w http.ResponseWriter, r *http.Request) {
 	//TODO delegate to service model
 	//TODO return JSON response
 	log.Println("Model Name: ", model, ",  relation: ", relation)
-	renderJson(w, fmt.Sprintf(`[{"Model": "%s", "Relation": "%s"}]`, model, relation));
+
+	m := s.findModel(model)
+	if m.Name != model {
+		status404(w)
+		return
+	}
+
+	ser := lib1ssarp.Service{s.Config.Database, m}
+	ser.FetchAll()
+	renderJson(w, fmt.Sprintf(`[{"Model": "%s", "Relation": "%s", Fetch: []}]`, model, relation));
 }
 
 func (s Server) one(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +147,17 @@ func (s Server) update(w http.ResponseWriter, r *http.Request) {
 func (s Server) delete(w http.ResponseWriter, r *http.Request) {
 
 }
+
+func (s Server) findModel(name string) lib1ssarp.Model {
+	for _, m := range s.Config.Models {
+		if m.Name == name {
+			return m
+		}
+	}
+	return lib1ssarp.Model{}
+}
+
+//Server End
 
 
 //helpers

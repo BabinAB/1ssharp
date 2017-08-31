@@ -33,20 +33,66 @@
           "length": 255
         }]
 
-  }, {
+  },
+
+    {
       "name" : "role",
-     "fields": [{
-      "name": "id",
-      "type": "uint",
-      "autoincrement": true
-     },
-      {
-        "name": "name",
+      "fields": [{
+        "name": "id",
+        "type": "uint",
+        "autoincrement": true
+      },
+        {
+          "name": "name",
+          "type": "string",
+          "length": 255
+        }
+
+      ]},
+
+    {
+      "name" : "user_role",
+      "fields": [{
+        "name": "user_id",
+        "type": "uint",
+        "refer": {
+          "name": "user"
+        }
+      },
+        {
+          "name": "role_id",
+          "type": "uint",
+          "refer": {
+            "name": "role"
+          }
+        }
+
+      ]},
+
+    {
+      "name" : "comments",
+      "fields": [{
+        "name": "id",
+        "type": "uint",
+        "autoincrement": true
+      }, {
+        "name": "comment",
         "type": "string",
         "length": 255
+      },{
+        "name": "datetime",
+        "type": "datetime"
+      }, {
+        "name": "user_id",
+        "type": "uint",
+        "refer": {
+          "name": "user"
+        }
       }
 
-  }],
+      ]}
+
+  ],
     "server": {
       "port": 8090
     }
