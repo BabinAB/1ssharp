@@ -10,5 +10,9 @@ $path = 'http://localhost:{{ .Config.Server.Port }}';
         <h1>Language: {{ .Config.Language }}, Version: {{ .Config.Version }} </h1>
 
         <p>Query API to: <?php echo $path; ?></p>
+
+
+        <iframe src="<?php echo $path?>/api/user/"></iframe>
+
     </body>
 </html>

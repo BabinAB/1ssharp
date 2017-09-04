@@ -59,7 +59,7 @@ func (cb ConfigurationBuilderPHP)  BuildFiles(){
 
 func (cb ConfigurationBuilderPHP) RunServer(c lib1ssarp.Configuration) {
 	fmt.Println("Start Server ...")
-	s := Server{c}
+	s := lib1ssarp.HttpServer{c}
 	s.Launch()
 }
 

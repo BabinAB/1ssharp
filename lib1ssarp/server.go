@@ -1,15 +1,15 @@
-package lib1ssarp_php
+package lib1ssarp
 
 /*
 TODO move to main package
  */
 
 import (
-	"./../../lib1ssarp"
 	"log"
 	"fmt"
 	"net/http"
 	"regexp"
+	"encoding/json"
 )
 
 const METHOD_GET = "GET"
@@ -18,6 +18,8 @@ const METHOD_PUT = "PUT"
 const METHOD_DELETE = "DELETE"
 
 const API_PREFIX = "api"
+
+
 
 
 var regUriAll *regexp.Regexp
@@ -39,12 +41,12 @@ func init()  {
 }
 
 //Server
-type Server struct {
-	Config lib1ssarp.Configuration
+type HttpServer struct {
+	Config Configuration
 }
 
 
-func (s Server) Launch() {
+func (s HttpServer) Launch() {
 	listen := s.Config.Server.Address()
 	log.Println("listen: ", listen)
 
@@ -55,7 +57,7 @@ func (s Server) Launch() {
 }
 
 
-func (s Server) index(w http.ResponseWriter, r *http.Request) {
+func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
 	log.Println("Index page", r.URL.Path, r.Method);
 
 	//simply route
@@ -78,7 +80,7 @@ func (s Server) index(w http.ResponseWriter, r *http.Request) {
 
 //REST methods
 //see http://www.restapitutorial.com/lessons/httpmethods.html
-func (s Server) all(w http.ResponseWriter, r *http.Request) {
+func (s HttpServer) all(w http.ResponseWriter, r *http.Request) {
 
 	res := regUriAll.FindStringSubmatch( r.URL.Path )
 
@@ -95,8 +97,6 @@ func (s Server) all(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO delegate to service model
-	//TODO return JSON response
 	log.Println("Model Name: ", model, ",  relation: ", relation)
 
 	m := s.findModel(model)
@@ -105,12 +105,23 @@ func (s Server) all(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ser := lib1ssarp.Service{s.Config.Database, m}
-	ser.FetchAll()
-	renderJson(w, fmt.Sprintf(`[{"Model": "%s", "Relation": "%s", Fetch: []}]`, model, relation));
+	ser := Service{s.Config.Database, m}
+	d := ser.FetchAll()
+
+	if d == nil {
+		status404(w)
+		return
+	}
+
+	js, e := json.Marshal(d)
+	if e != nil {
+		status500(w)
+	}
+
+	renderJson(w, string(js))
 }
 
-func (s Server) one(w http.ResponseWriter, r *http.Request) {
+func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
 
 	res := regUriOne.FindStringSubmatch( r.URL.Path )
 
@@ -129,32 +140,50 @@ func (s Server) one(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO delegate to service model
-	//TODO return JSON response
 	log.Println("Model Name: ", model, ", pk: ", id, ", relation: ", relation)
-	renderJson(w, fmt.Sprintf(`{"Model": "%s", "Pk": %s, "Relation": "%s"}`, model, id, relation));
+
+	m := s.findModel(model)
+	if m.Name != model {
+		status404(w)
+		return
+	}
+
+	ser := Service{s.Config.Database, m}
+	d := ser.FetchOne(id)
+
+	if d == nil {
+		status404(w)
+		return
+	}
+
+	js, e := json.Marshal(d)
+	if e != nil {
+		status500(w)
+	}
+
+	renderJson(w, string(js))
 
 }
 
-func (s Server) create(w http.ResponseWriter, r *http.Request) {
+func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Create, Path: %q, Method: %s", r.URL.Path, r.Method)
 }
 
-func (s Server) update(w http.ResponseWriter, r *http.Request) {
+func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s Server) delete(w http.ResponseWriter, r *http.Request) {
+func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s Server) findModel(name string) lib1ssarp.Model {
+func (s HttpServer) findModel(name string) Model {
 	for _, m := range s.Config.Models {
 		if m.Name == name {
 			return m
 		}
 	}
-	return lib1ssarp.Model{}
+	return Model{}
 }
 
 //Server End
@@ -173,4 +202,9 @@ func renderJson(w http.ResponseWriter, js string) {
 func status404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, "custom 404")
+}
+
+func status500(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(w, "custom 500")
 }

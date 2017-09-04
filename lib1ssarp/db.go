@@ -1,23 +1,25 @@
 package lib1ssarp
 
-/**
-TODO add types database as constants - `mysql, pg, mssql and etc`
-TODO add types database fields as constants - `uint, int, string and etc`
- */
-
 import (
 	"fmt"
 	"database/sql"
     _ "github.com/go-sql-driver/mysql"
 	"os"
 	"log"
-	"strings"
 )
 
 var db *sql.DB
 var err error
 var isOpen bool = false
 
+const DB_TYPE_MYSQL = "mysql"
+const DB_TYPE_POSTGRES = "postgres"
+const DB_TYPE_MSSQL = "mssql"
+const DB_TYPE_SQLITE = "sqlite"
+
+const FIELD_TYPE_UINT = "uint"
+const FIELD_TYPE_INT = "int"
+const FIELD_TYPE_STRING = "string"
 
 func init() {
 	fmt.Println("Init db...")
@@ -34,7 +36,7 @@ func GetConn(d Database) *sql.DB {
 
 	var strConn string
 
-	if d.Type != "mysql" {
+	if d.Type != DB_TYPE_MYSQL {
 		//TODO not yet
 		panic(fmt.Errorf("While the system only supports - mysql driver"))
 		os.Exit(1)
@@ -75,13 +77,25 @@ type Service struct {
 	Model Model
 }
 
-func (s Service) FetchAll()  {
+func (s Service) FetchAll() []map[string]string {
 	switch s.Database.Type {
-	case "mysql":
-		//TODO fetch data
+	case DB_TYPE_MYSQL:
+		return mysqlFetchAll(s.Model, s.Database)
 
 	}
+
+	return nil
 }
+
+func (s Service) FetchOne(id string) map[string]string  {
+	switch s.Database.Type {
+	case DB_TYPE_MYSQL:
+		return mysqlFetchOne(id, s.Model, s.Database)
+
+	}
+	return nil
+}
+
 
 //Service end
 
@@ -94,7 +108,7 @@ type Table struct {
 
 func (t Table) Exists() bool {
 	switch t.Database.Type {
-	case "mysql":
+	case DB_TYPE_MYSQL:
 		return mysqlTableExists(t.Model.Name, t.Database)
 
 	}
@@ -104,7 +118,7 @@ func (t Table) Exists() bool {
 func (t Table) Create() {
 	fmt.Println("Create table: ", t.Model.Name, ", db type: ",  t.Database.Type)
 	switch t.Database.Type {
-	case "mysql":
+	case DB_TYPE_MYSQL:
 		mysqlTableCreate(t.Model, t.Database)
 
 	}
@@ -114,7 +128,7 @@ func (t Table) Update() {
 	fmt.Println("Update table: ", t.Model.Name)
 	var countUpdate uint
 	switch t.Database.Type {
-	case "mysql":
+	case DB_TYPE_MYSQL:
 		countUpdate = mysqlTableUpdate(t.Model, t.Database)
 
 	}
@@ -142,157 +156,6 @@ func (c Column) String() string {
 //Column end
 
 
-//mysql
-func mysqlTableExists(name string, d Database) bool {
-	conn := GetConn(d)
-	var tn string
-	e := conn.QueryRow(`SELECT TABLE_NAME FROM information_schema.tables
-								WHERE table_schema = ?  AND table_name = ? LIMIT 1`, d.Basename, name).Scan(&tn)
-	detectSqlErr(e)
-	return  len(tn) > 0
-}
-
-
-func mysqlFieldType(f Field) string {
-	field := fmt.Sprintf("%s ", f.Name)
-	switch f.Type {
-	case "uint":
-		field += "INT(10) unsigned"
-	case "int":
-		field += "INT(10)"
-	case "string":
-		field += fmt.Sprintf("VARCHAR(%d) ", f.Length)
-	default:
-		panic(fmt.Errorf("Error match type: %s", f.Type))
-	}
-
-	if f.Autoincrement {
-		field += " auto_increment primary key"
-	}
-
-	return field
-}
-
-
-func mysqlTableCreate(m Model, d Database) {
-
-	query := fmt.Sprintf("CREATE TABLE %s (", m.Name)
-	for n, f := range m.Fields {
-		if n > 0 {
-			query += ", "
-		}
-		query += mysqlFieldType(f)
-	}
-	query += fmt.Sprintf(") CHARACTER SET utf8")
-
-	mysqlExecPureQuery(d, query)
-
-}
-
-func mysqlExecPureQuery(d Database, query string ) {
-	fmt.Println("Exec Query: ", query)
-
-	conn := GetConn(d)
-	r, e := conn.Exec(query)
-	detectSqlErr(e)
-	_, e = r.RowsAffected()
-	detectSqlErr(e)
-}
-
-/**
-
- */
-func mysqlTableUpdate(m Model, d Database) uint {
-
-	columns := mysqlTableColumns(m.Name, d)
-	columnsSee := map[string]bool{}
-	var countUpdate uint = 0
-
-	for _, f := range m.Fields {
-
-		column := columns[f.Name]
-		columnsSee[column.Name] = true
-		if column.Name != f.Name {
-			fmt.Println("Add new column: ", f.Name)
-			query := `ALTER TABLE ` + d.Basename + `.` + m.Name + ` ADD COLUMN ` + mysqlFieldType(f)
-			mysqlExecPureQuery(d, query)
-			countUpdate ++
-			continue
-		}
-
-		if column.Type != f.Type || column.Length != f.Length {
-
-			fmt.Println("Modified column: ", f.Name, ", Type: ", f.Type, ", Length: ", f.Length)
-
-			query := `ALTER TABLE ` + d.Basename + `.` + m.Name + ` MODIFY ` +  mysqlFieldType(f)
-			mysqlExecPureQuery(d, query)
-			countUpdate ++
-			continue
-		}
-	}
-
-	//TODO Perhaps, need safe delete columns
-	for name, column := range columns {
-		if !columnsSee[name] {
-			fmt.Println("Drop column: ", column.Name)
-
-			query := `ALTER TABLE ` + d.Basename + `.` + m.Name + ` DROP COLUMN ` +  column.Name
-			mysqlExecPureQuery(d, query)
-			countUpdate ++
-		}
-	}
-
-	return countUpdate
-}
-
-
-func mysqlTableColumns(name string, d Database) map[string]Column {
-	conn := GetConn(d)
-
-	r, e := conn.Query(`SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, EXTRA, CHARACTER_MAXIMUM_LENGTH
-								FROM information_schema.COLUMNS
-								WHERE table_schema = ?  AND table_name = ?`, d.Basename, name)
-
-
-
-	detectSqlErr(e)
-
-	defer r.Close()
-
-	var cname, dtype, ctype, extra string
-	var length uint
-
-	m := map[string]Column{}
-
-	for r.Next() {
-
-		e = r.Scan(&cname, &dtype, &ctype, &extra, &length)
-		detectSqlErr(e)
-
-		column := Column{}
-		column.Name = cname
-		column.Autoincrement = extra == "auto_increment"
-		column.Length  = length
-
-		//TODO move once func, see  mysqlTableCreate
-		switch dtype {
-		case "varchar":
-			column.Type = "string"
-		case "int":
-			if strings.Contains(ctype, "unsigned") {
-				column.Type = "uint"
-			} else {
-				column.Type = "int"
-			}
-		default:
-			panic(fmt.Errorf("Error match type: %s", ctype))
-		}
-
-		m[column.Name] = column
-	}
-
-	return m
-}
 
 
 //end mysql
