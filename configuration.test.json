@@ -33,6 +33,25 @@
           "name": "phone",
           "type": "string",
           "length": 255
+        },{
+          "name": "role_id",
+          "type": "uint",
+          "refer": {
+            "name": "role"
+          }
+        }]
+    },
+    {
+      "name": "role",
+      "fields": [{
+        "name": "id",
+        "type": "uint",
+        "autoincrement": true
+      },
+        {
+          "name": "name",
+          "type": "string",
+          "length": 255
         }]
     }
   ],

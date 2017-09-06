@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"regexp"
 	"encoding/json"
+	"bytes"
+	"text/template"
+	"io/ioutil"
 )
 
 const METHOD_GET = "GET"
@@ -19,7 +22,7 @@ const METHOD_DELETE = "DELETE"
 
 const API_PREFIX = "api"
 
-
+const CLIENT_TEST = "/test-client"
 
 
 var regUriAll *regexp.Regexp
@@ -63,7 +66,9 @@ func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
 	//simply route
 	switch r.Method {
 	case METHOD_GET:
-		if regUriOne.MatchString(r.URL.Path) {
+		if r.URL.Path == CLIENT_TEST {
+			s.clientTest(w, r)
+		} else if regUriOne.MatchString(r.URL.Path) {
 			s.one(w, r)
 		} else {
 			s.all(w, r)
@@ -158,7 +163,9 @@ func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
 
 	js, e := json.Marshal(d)
 	if e != nil {
+		log.Println(e)
 		status500(w)
+		return
 	}
 
 	renderJson(w, string(js))
@@ -166,17 +173,70 @@ func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Create, Path: %q, Method: %s", r.URL.Path, r.Method)
+	res := regUriAll.FindStringSubmatch( r.URL.Path )
+
+	var model string
+
+	switch len(res) {
+	case 2:case 3:
+		model = res[1]
+	default:
+		status404(w)
+		return
+	}
+
+	log.Println("Create Model Name: ", model)
+
+	body, e := ioutil.ReadAll(r.Body)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	log.Println("Body: ", string(body))
+
+	var mt interface{}
+	e = json.Unmarshal(body, &mt)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	mp := mt.(map[string]interface{})
+	log.Println(mp)
+
+	m := s.findModel(model)
+	if m.Name != model {
+		status404(w)
+		return
+	}
+
+	ser := Service{s.Config.Database, m}
+	d := ser.Create(mp)
+
+	log.Println("Create result: ", d)
+	renderJson(w, fmt.Sprintf("{id: %d}", d))
 }
 
+/**
+
+ */
 func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 
 }
 
+/**
+
+ */
 func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 
 }
 
+/**
+
+ */
 func (s HttpServer) findModel(name string) Model {
 	for _, m := range s.Config.Models {
 		if m.Name == name {
@@ -186,6 +246,29 @@ func (s HttpServer) findModel(name string) Model {
 	return Model{}
 }
 
+
+func (s HttpServer)  clientTest(w http.ResponseWriter, r *http.Request) {
+	sourceFile := "./resource/client.html"
+	fmt.Println("Read File: ", sourceFile)
+
+	t, e := template.ParseFiles(sourceFile)
+	if e != nil {
+		log.Printf("Error Parse Template : %v\n", e)
+		status404(w)
+		return
+	}
+
+	var tpl bytes.Buffer
+
+	e = t.Execute(&tpl, s.Config)
+	if e != nil {
+		log.Printf("Error Execute Template : %v\n", e)
+		status500(w)
+		return
+	}
+
+	fmt.Fprint(w, tpl.String())
+}
 //Server End
 
 

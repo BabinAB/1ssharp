@@ -221,3 +221,34 @@ func mysqlFetchOne(id string, m  Model, d   Database) map[string]string{
 
 	return nil
 }
+
+
+func mysqlCreateModel(data map[string]interface{}, m  Model, d   Database) uint {
+
+	fmt.Println(data)
+
+	var fields, values string
+	var args []interface{}
+	num := 0
+
+	for key, value := range data {
+		if num > 0 {
+			fields += ","
+			values += ","
+		}
+		num ++
+		fields += key
+		values += "?"
+		args = append(args, value)
+	}
+
+	fmt.Println(`INSERT INTO ` + SafeName(m.Name) + ` (` + fields + `) VALUES (` + values + `)`)
+	conn := GetConn(d)
+	r, e := conn.Exec(`INSERT INTO ` + SafeName(m.Name) + ` (` + fields + `) VALUES (` + values + `)`, args...)
+	detectSqlErr(e)
+
+	id, e := r.LastInsertId()
+	detectSqlErr(e)
+
+	return uint(id)
+}

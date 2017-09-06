@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Пример веб-страницы</title>
+</head>
+<body>
+<h1>Test-client: Language: {{ .Language }}, Version: {{ .Version }} </h1>
+<!-- Комментарий -->
+<form action="" method="" id="client-form">
+    <div>
+        <select name="methodSend">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+        </select>
+    </div>
+    <div>
+        <input type="text" name="url" value="/api/user/"/>
+    </div>
+    <div>
+        <textarea name="input" cols="70" rows="10">{"name":"xsx", "email": "test@mail.ew"}
+        </textarea>
+    </div>
+
+    <div>
+        <button type="submit">Send</button>
+    </div>
+
+    <div>
+        <textarea name="output" cols="70" rows="10"></textarea>
+    </div>
+</form>
+
+
+<script type="text/javascript">
+    (function(w, d){
+
+        var form = d.getElementById('client-form'),
+            ajax = function(method, url, data, callBack) {
+                var xhr = new XMLHttpRequest();
+                xhr.open(method, url, true);
+                xhr.send([data]);
+
+                xhr.onreadystatechange = function() {
+                    if (this.readyState != 4) return;
+
+                    if (this.status != 200) {
+                        alert( 'ошибка: ' + (this.status ? this.statusText : 'запрос не удался') );
+                        return;
+                    }
+
+                    if(typeof callBack === 'function') {
+                        callBack(this.responseText);
+                    }
+                }
+            },
+
+            safeJson = function(strJson) {
+                var obj = eval('(' + strJson + ')'),
+                    f = function(d) {
+                        var a,k,n =0,v = '';
+
+                        switch (typeof d) {
+                            case 'object':
+                                if(d === null) {
+                                    return 'null';
+                                }
+                                break;
+                            case 'undefined':
+                                return 'null';
+                            case 'string':
+                                return '"'+d+'"';
+                            default:
+                                return d;
+                        }
+
+                        a = d.__proto__.constructor === [].__proto__.constructor;
+                        v +=  a ? '[' : '{';
+
+                        for(k in d) {
+                            if(n ++ > 0) {
+                                v += ',';
+                            }
+                            v += a ? f(d[k]) : f( k ) + ':' + f(d[k]);
+                        }
+                        v += a ? ']' : '}';
+                        return v;
+                    }
+                ;
+
+                return f(obj);
+            }
+        ;
+
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            ajax(
+                form.methodSend.value,
+                form.url.value,
+                safeJson( form.input.value ), function(value){
+                form.output.value = value;
+            });
+
+
+        })
+
+
+    })(window, document)
+</script>
+
+</body>
+</html>

@@ -97,6 +97,15 @@ func (s Service) FetchOne(id string) map[string]string  {
 }
 
 
+func (s Service) Create(data map[string]interface{}) uint {
+	switch s.Database.Type {
+	case DB_TYPE_MYSQL:
+		return mysqlCreateModel(data, s.Model, s.Database)
+
+	}
+	return 0
+}
+
 //Service end
 
 
