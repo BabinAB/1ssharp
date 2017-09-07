@@ -5,3 +5,5 @@
 
 pkg/
 src/
+
+configuration.local.json
