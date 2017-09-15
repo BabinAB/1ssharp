@@ -222,7 +222,9 @@ func mysqlFetchOne(id string, m  Model, d   Database) map[string]string{
 	return nil
 }
 
+/**
 
+ */
 func mysqlCreateModel(data map[string]interface{}, m  Model, d   Database) uint {
 
 	fmt.Println(data)
@@ -251,4 +253,50 @@ func mysqlCreateModel(data map[string]interface{}, m  Model, d   Database) uint 
 	detectSqlErr(e)
 
 	return uint(id)
+}
+
+/**
+
+ */
+func mysqlUpdateModel(id string, data map[string]interface{}, m  Model, d   Database) bool {
+	fmt.Println(data)
+
+	var fields string
+	var args []interface{}
+	num := 0
+
+	for key, value := range data {
+		if num > 0 {
+			fields += ","
+		}
+		num ++
+		fields += key
+		fields += "= ?"
+		args = append(args, value)
+	}
+
+	fmt.Println(`UPDATE ` + SafeName(m.Name) + ` SET ` + fields + ` WHERE id = ?`)
+	args = append(args, id)
+
+	conn := GetConn(d)
+	r, e := conn.Exec(`UPDATE ` + SafeName(m.Name) + ` SET ` + fields + ` WHERE id = ?`, args...)
+	detectSqlErr(e)
+
+	a, e := r.RowsAffected()
+	detectSqlErr(e)
+
+	return a > 0
+}
+
+
+func mysqlDeleteModel(id string,  m  Model, d   Database) bool {
+	conn := GetConn(d)
+
+	r, e := conn.Exec(`DELETE FROM  ` + SafeName(m.Name) + ` WHERE id = ?`, id)
+	detectSqlErr(e)
+
+	a, e := r.RowsAffected()
+	detectSqlErr(e)
+
+	return a > 0
 }

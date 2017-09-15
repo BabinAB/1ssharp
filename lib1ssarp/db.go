@@ -106,6 +106,24 @@ func (s Service) Create(data map[string]interface{}) uint {
 	return 0
 }
 
+func (s Service) Update(id string, data map[string]interface{}) bool{
+	switch s.Database.Type {
+	case DB_TYPE_MYSQL:
+		return mysqlUpdateModel(id, data, s.Model, s.Database)
+
+	}
+	return false
+}
+
+func (s Service) Delete(id string) bool {
+	switch s.Database.Type {
+	case DB_TYPE_MYSQL:
+		return mysqlDeleteModel(id, s.Model, s.Database)
+
+	}
+	return false
+}
+
 //Service end
 
 

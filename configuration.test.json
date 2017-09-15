@@ -57,5 +57,31 @@
   ],
   "server": {
     "port": 8090
+  },
+  "session": {
+
+    "live": 1000,
+    "permissions": [
+      {
+        "name": "user.all",
+        "model": "user",
+        "read": true,
+        "update": true,
+        "delete": true,
+        "create": true
+      }
+    ],
+    "roles": [
+      {
+        "name"  : "admin",
+        "permissions": ["user.all"]
+      }
+    ],
+    "tokens": [
+      {
+        "token" : "xsxksmkxmskxmskxmskxmskx",
+        "roles" : ["admin"]
+      }
+    ]
   }
 }

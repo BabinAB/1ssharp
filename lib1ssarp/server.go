@@ -217,7 +217,7 @@ func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
 	d := ser.Create(mp)
 
 	log.Println("Create result: ", d)
-	renderJson(w, fmt.Sprintf("{id: %d}", d))
+	renderJson(w, fmt.Sprintf(`{"id": %d}`, d))
 }
 
 /**
@@ -225,13 +225,92 @@ func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
  */
 func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 
+	res := regUriOne.FindStringSubmatch( r.URL.Path )
+
+	var model, id string
+
+	switch len(res) {
+	case 3:case 4:
+		model = res[1]
+		id = res[2]
+	default:
+		status404(w)
+		return
+	}
+
+	log.Println("Update Name: ", model, ", pk: ", id)
+
+	body, e := ioutil.ReadAll(r.Body)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	log.Println("Body: ", string(body))
+
+	var mt interface{}
+	e = json.Unmarshal(body, &mt)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	mp := mt.(map[string]interface{})
+	log.Println(mp)
+
+	m := s.findModel(model)
+	if m.Name != model {
+		status404(w)
+		return
+	}
+
+	ser := Service{s.Config.Database, m}
+	d := ser.Update(id, mp)
+
+	log.Println("Update result: ", d)
+	if d {
+		renderJson(w, fmt.Sprintf(`{"update": "Ok"}`))
+	} else {
+		renderJson(w, fmt.Sprintf(`{"update": "No"}`))
+	}
 }
 
 /**
 
  */
 func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
+	res := regUriOne.FindStringSubmatch( r.URL.Path )
 
+	var model, id string
+
+	switch len(res) {
+	case 3:case 4:
+		model = res[1]
+		id = res[2]
+	default:
+		status404(w)
+		return
+	}
+
+	log.Println("Delete Name: ", model, ", pk: ", id)
+
+	m := s.findModel(model)
+	if m.Name != model {
+		status404(w)
+		return
+	}
+
+	ser := Service{s.Config.Database, m}
+	d := ser.Delete(id)
+
+	log.Println("Delete result: ", d)
+	if d {
+		renderJson(w, fmt.Sprintf(`{"delete": "Ok"}`))
+	} else {
+		renderJson(w, fmt.Sprintf(`{"delete": "No"}`))
+	}
 }
 
 /**
