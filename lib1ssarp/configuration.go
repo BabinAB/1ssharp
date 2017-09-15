@@ -2,6 +2,7 @@ package lib1ssarp
 
 import (
 	"fmt"
+	"errors"
 )
 
 func init() {}
@@ -143,7 +144,7 @@ func (s Session) getToken(token string) (error, Token) {
 		}
 	}
 
-	return error("Not found"), Token{}
+	return errors.New("Not found"), Token{}
 }
 
 func (s Session) getRole(name string) (error, Role) {
@@ -154,7 +155,7 @@ func (s Session) getRole(name string) (error, Role) {
 		}
 	}
 
-	return error("Not found"), Role{}
+	return  errors.New("Not found"), Role{}
 }
 
 
