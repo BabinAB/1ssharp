@@ -98,6 +98,68 @@ func (r ReferField) String() string {
 
 
 
+//Session
+
+type Permission struct {
+	Model string
+	Read bool
+	Update bool
+	Delete bool
+	Create bool
+}
+
+func (p Permission) String () string {
+	return fmt.Sprintf("Permission{Name: %s}",  p.Model)
+}
+
+type Role  struct {
+	Name string
+	Permissions []Permission
+}
+
+func (r Role) String () string {
+	return fmt.Sprintf("Role{Name: %s}",  r.Name)
+}
+
+type Token struct {
+	Token string
+	Roles []Role
+}
+
+func (t Token) String () string {
+	return fmt.Sprintf("Token{Name: %s}",  t.Token)
+}
+
+type Session struct {
+	Roles []Role
+	Tokens []Token
+}
+
+func (s Session) getToken(token string) (error, Token) {
+
+	for _, t := range s.Tokens {
+		if t.Token == token {
+			return nil, t
+		}
+	}
+
+	return error("Not found"), Token{}
+}
+
+func (s Session) getRole(name string) (error, Role) {
+
+	for _, r := range s.Roles {
+		if r.Name == name {
+			return nil, r
+		}
+	}
+
+	return error("Not found"), Role{}
+}
+
+
+//Session end
+
 type ConfigurationBuilder interface {
 	Build(c Configuration)
 	RunServer(c Configuration)
