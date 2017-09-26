@@ -2,64 +2,41 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+
+    <script type="text/javascript" src="https://blueimp.github.io/JavaScript-MD5/js/md5.js"></script>
+
     <title>Пример веб-страницы</title>
-</head>
-<body>
-<h1>Test-client: Language: {{ .Language }}, Version: {{ .Version }} </h1>
-<!-- Комментарий -->
-<form action="" method="" id="client-form">
-    <div>
-        <select name="methodSend">
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-        </select>
-    </div>
-    <div>
-        <input type="text" name="url" value="/api/user/"/>
-    </div>
-    <div>
-        <textarea name="input" cols="70" rows="10">{"name":"xsx", "email": "test@mail.ew"}
-        </textarea>
-    </div>
-
-    <div>
-        <button type="submit">Send</button>
-    </div>
-
-    <div>
-        <textarea name="output" cols="70" rows="10"></textarea>
-    </div>
-</form>
 
 
-<script type="text/javascript">
-    (function(w, d){
+    <script type="text/javascript">
+        //core
+        var ajax = function(method, url, data, callBack) {
+            var sessionOpen = document.getElementById('session_open'),
+                xhr = new XMLHttpRequest();
 
-        var form = d.getElementById('client-form'),
-            ajax = function(method, url, data, callBack) {
-                var xhr = new XMLHttpRequest();
-                xhr.open(method, url, true);
-                xhr.send([data]);
+            xhr.open(method, url, true);
+            if(sessionOpen.value) {
+                xhr.setRequestHeader("Authorization", "Token " + sessionOpen.value);
+            }
+            xhr.send([data]);
 
-                xhr.onreadystatechange = function() {
-                    if (this.readyState != 4) return;
+            xhr.onreadystatechange = function() {
+                if (this.readyState != 4) return;
 
-                    if (this.status != 200) {
-                        alert( 'ошибка: ' + (this.status ? this.statusText : 'запрос не удался') );
-                        return;
-                    }
-
-                    if(typeof callBack === 'function') {
-                        callBack(this.responseText);
-                    }
+                if (this.status != 200) {
+                    alert( 'ошибка: ' + (this.status ? this.statusText : 'запрос не удался') );
+                    return;
                 }
-            },
+
+                if(typeof callBack === 'function') {
+                    callBack(this.responseText);
+                }
+            }
+        },
 
             safeJson = function(strJson) {
-                var obj = eval('(' + strJson + ')'),
-                    f = function(d) {
+                var f = function(d) {
                         var a,k,n =0,v = '';
 
                         switch (typeof d) {
@@ -90,11 +67,108 @@
                     }
                 ;
 
-                return f(obj);
-            }
-        ;
+                try {
+                    return f(eval('(' + strJson + ')'));
+                } catch (e) {  }
+
+                return "";
+            };
+
+    </script>
+
+</head>
+<body>
+<h1>Test-client: Language: {{ .Language }}, Version: {{ .Version }} </h1>
+<!-- Комментарий -->
 
 
+<h3>Session</h3>
+<form action="" method="" id="client-form-session">
+    <div>
+    <select name="type">
+        <option>open</option>
+        <option>close</option>
+    </select>
+    <input name="token" placeholder="valid token" value=""/>
+        <button type="submit">Send</button>
+    </div>
+
+    <div>
+        <textarea name="result" cols="70" rows="10">
+
+        </textarea>
+    </div>
+
+    <div>
+        <textarea id="session_open" name="session" cols="70" rows="10"></textarea>
+    </div>
+
+</form>
+
+<script type="text/javascript">
+    (function(w, d){
+        var form = d.getElementById('client-form-session');
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+
+            console.log(form.type.value);
+            console.log(form.token.value);
+
+            var method = form.type.value === 'open' ? 'POST' : 'DELETE',
+                sold   = 'xs12xsjx333nsjxnsj&hcdhhcehnewenckewdw',
+                body = "{\"token\": \"" + md5(form.token.value + sold + method) + "\",\"sold\":\"" + sold + "\"}"
+            ;
+
+            ajax(
+                method,
+                '/session',
+                body
+                , function(value){
+                    form.result.value = value;
+
+                    var data = eval('(' + value + ')');
+                    form.session.value = data.session;
+
+                });
+        })
+    })(window, document)
+</script>
+
+{{ range .Models }}
+    <h3>Model: {{.Name}}</h3>
+
+    <form action="" method="" id="client-form-{{.Name}}">
+        <div>
+            <select name="methodSend">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+            </select>
+        </div>
+        <div>
+            <input placeholder="{{.Name}}" type="text" name="url" value="/api/{{.Name}}/"/>
+        </div>
+        <div>
+            <textarea name="input" cols="70" rows="10">{ {{range $i, $m := .Fields}} {{ if $i}},{{ end }}"{{$m.Name}}": "{{$i}}"{{end}} }
+            </textarea>
+        </div>
+
+        <div>
+            <button type="submit">Send</button>
+        </div>
+
+        <div>
+            <textarea name="output" cols="70" rows="10"></textarea>
+        </div>
+    </form>
+
+
+
+<script type="text/javascript">
+    (function(w, d){
+        var form = d.getElementById('client-form-{{.Name}}');
         form.addEventListener('submit', function (e) {
             e.preventDefault();
 
@@ -104,13 +178,11 @@
                 safeJson( form.input.value ), function(value){
                 form.output.value = value;
             });
-
-
         })
-
-
     })(window, document)
 </script>
+
+{{ end}}
 
 </body>
 </html>

@@ -83,9 +83,9 @@ func mysqlTableUpdate(m  Model, d  Database) uint {
 			continue
 		}
 
-		if column.Type != f.Type || column.Length != f.Length {
-
-			fmt.Println("Modified column: ", f.Name, ", Type: ", f.Type, ", Length: ", f.Length)
+		if column.Type != f.Type ||
+			(column.Type == FIELD_TYPE_STRING && column.Length != f.Length) {
+			fmt.Println("Modified column: ", f.Name, ", Type: ", f.Type, ", Length: ", f.Length, ", (Type:", column.Type, ")")
 
 			query := `ALTER TABLE ` + d.Basename + `.` + m.Name + ` MODIFY ` +  mysqlFieldType(f)
 			mysqlExecPureQuery(d, query)

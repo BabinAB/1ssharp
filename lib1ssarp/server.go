@@ -17,20 +17,26 @@ import (
 	"bytes"
 	"text/template"
 	"io/ioutil"
+	"strings"
+	"crypto/md5"
 )
 
-const METHOD_GET = "GET"
-const METHOD_POST = "POST"
-const METHOD_PUT = "PUT"
-const METHOD_DELETE = "DELETE"
+const (
+	//methods
+	METHOD_GET = "GET"
+	METHOD_POST = "POST"
+	METHOD_PUT = "PUT"
+	METHOD_DELETE = "DELETE"
 
-const API_PREFIX = "api"
+	//rest api
+	API_PREFIX = "api"
 
-const CLIENT_TEST = "/test-client"
+	//static page
+	CLIENT_TEST = "/test-client"
+	CLIENT_SESSION = "/session"
+)
 
-
-var regUriAll *regexp.Regexp
-var regUriOne *regexp.Regexp
+var regUriAll, regUriOne *regexp.Regexp
 
 
 func init()  {
@@ -44,13 +50,14 @@ func init()  {
 	if e != nil {
 		panic(e)
 	}
-
 }
+
 
 //Server
 type HttpServer struct {
 	Config Configuration
 }
+
 
 
 func (s HttpServer) Launch() {
@@ -78,11 +85,20 @@ func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
 			s.all(w, r)
 		}
 	case METHOD_POST:
-		s.create(w, r)
+		if r.URL.Path == CLIENT_SESSION {
+			s.sessionOpen(w, r)
+		} else {
+			s.create(w, r)
+		}
 	case METHOD_PUT:
 		s.update(w, r)
 	case METHOD_DELETE:
-		s.delete(w, r)
+
+		if r.URL.Path == CLIENT_SESSION {
+			s.sessionClose(w, r)
+		} else {
+			s.delete(w, r)
+		}
 	}
 }
 
@@ -91,26 +107,17 @@ func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
 //see http://www.restapitutorial.com/lessons/httpmethods.html
 func (s HttpServer) all(w http.ResponseWriter, r *http.Request) {
 
-	res := regUriAll.FindStringSubmatch( r.URL.Path )
+	req := parseRequest(r.URL.Path , regUriAll , true)
+	log.Println("Get all: ", req)
 
-	var model, relation string
-
-	switch len(res) {
-	case 2:
-		model = res[1]
-	case 3:
-		model = res[1]
-		relation = res[2]
-	default:
+	m := s.findModel(req.Model)
+	if m.Name != req.Model {
 		status404(w)
 		return
 	}
 
-	log.Println("Model Name: ", model, ",  relation: ", relation)
-
-	m := s.findModel(model)
-	if m.Name != model {
-		status404(w)
+	if !checkSession(m, r) {
+		status401(w)
 		return
 	}
 
@@ -131,34 +138,27 @@ func (s HttpServer) all(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
+	req := parseRequest(r.URL.Path , regUriOne , false)
+	log.Println("Get model: ", req)
 
-	res := regUriOne.FindStringSubmatch( r.URL.Path )
-
-	var model, id, relation string
-
-	switch len(res) {
-	case 3:
-		model = res[1]
-		id = res[2]
-	case 4:
-		model = res[1]
-		id = res[2]
-		relation = res[3]
-	default:
+	if req.Id == "" {
 		status404(w)
 		return
 	}
 
-	log.Println("Model Name: ", model, ", pk: ", id, ", relation: ", relation)
-
-	m := s.findModel(model)
-	if m.Name != model {
+	m := s.findModel(req.Model)
+	if m.Name != req.Model {
 		status404(w)
+		return
+	}
+
+	if !checkSession(m, r) {
+		status401(w)
 		return
 	}
 
 	ser := Service{s.Config.Database, m}
-	d := ser.FetchOne(id)
+	d := ser.FetchOne(req.Id)
 
 	if d == nil {
 		status404(w)
@@ -177,19 +177,8 @@ func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
-	res := regUriAll.FindStringSubmatch( r.URL.Path )
-
-	var model string
-
-	switch len(res) {
-	case 2:case 3:
-		model = res[1]
-	default:
-		status404(w)
-		return
-	}
-
-	log.Println("Create Model Name: ", model)
+	req := parseRequest(r.URL.Path , regUriAll , false)
+	log.Println("Create Model Name: ", req)
 
 	body, e := ioutil.ReadAll(r.Body)
 	if e != nil {
@@ -211,9 +200,14 @@ func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
 	mp := mt.(map[string]interface{})
 	log.Println(mp)
 
-	m := s.findModel(model)
-	if m.Name != model {
+	m := s.findModel(req.Model)
+	if m.Name != req.Model {
 		status404(w)
+		return
+	}
+
+	if !checkSession(m, r) {
+		status401(w)
 		return
 	}
 
@@ -228,21 +222,13 @@ func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
 
  */
 func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
+	req := parseRequest(r.URL.Path , regUriOne , false)
+	log.Println("Update Model Name: ", req)
 
-	res := regUriOne.FindStringSubmatch( r.URL.Path )
-
-	var model, id string
-
-	switch len(res) {
-	case 3:case 4:
-		model = res[1]
-		id = res[2]
-	default:
+	if req.Id == "" {
 		status404(w)
 		return
 	}
-
-	log.Println("Update Name: ", model, ", pk: ", id)
 
 	body, e := ioutil.ReadAll(r.Body)
 	if e != nil {
@@ -264,14 +250,19 @@ func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 	mp := mt.(map[string]interface{})
 	log.Println(mp)
 
-	m := s.findModel(model)
-	if m.Name != model {
+	m := s.findModel(req.Model)
+	if m.Name != req.Model {
 		status404(w)
 		return
 	}
 
+	if !checkSession(m, r) {
+		status401(w)
+		return
+	}
+
 	ser := Service{s.Config.Database, m}
-	d := ser.Update(id, mp)
+	d := ser.Update(req.Id, mp)
 
 	log.Println("Update result: ", d)
 	if d {
@@ -285,29 +276,27 @@ func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 
  */
 func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
-	res := regUriOne.FindStringSubmatch( r.URL.Path )
+	req := parseRequest(r.URL.Path , regUriOne , false)
+	log.Println("Delete Model Name: ", req)
 
-	var model, id string
-
-	switch len(res) {
-	case 3:case 4:
-		model = res[1]
-		id = res[2]
-	default:
+	if req.Id == "" {
 		status404(w)
 		return
 	}
 
-	log.Println("Delete Name: ", model, ", pk: ", id)
-
-	m := s.findModel(model)
-	if m.Name != model {
+	m := s.findModel(req.Model)
+	if m.Name != req.Model {
 		status404(w)
+		return
+	}
+
+	if !checkSession(m, r) {
+		status401(w)
 		return
 	}
 
 	ser := Service{s.Config.Database, m}
-	d := ser.Delete(id)
+	d := ser.Delete(req.Id)
 
 	log.Println("Delete result: ", d)
 	if d {
@@ -315,6 +304,56 @@ func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 	} else {
 		renderJson(w, fmt.Sprintf(`{"delete": "No"}`))
 	}
+}
+
+
+func (s HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
+	log.Println("Open session... ")
+
+	body, e := ioutil.ReadAll(r.Body)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	log.Println("Body: ", string(body))
+
+	var data struct{
+		Token string
+		Sold string
+	}
+
+	e = json.Unmarshal(body, &data)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	//etch all allow token and check with hash
+	for _, token := range s.Config.Session.Tokens {
+		hash := digestString(token.Token + data.Sold + "POST")
+		//log.Println(" hash: ", hash, "=", data.Token, "P:", token.Token + data.Sold + "POST")
+		if hash == data.Token {
+			log.Println("Find token: ", token)
+			hs := NewHttpSession(token)
+			sessions[hs.CreatePublicToken()] = hs
+
+			renderJson(w, fmt.Sprintf(`{"status": "OK", "session": "%s", "create": "%d"}`,
+				hs.CreatePublicToken(),
+				hs.Create))
+			return
+		}
+	}
+
+	//token not found
+	status404(w)
+
+}
+
+func (s HttpServer) sessionClose(w http.ResponseWriter, r *http.Request) {
+	log.Println("Close session: ")
 }
 
 /**
@@ -329,7 +368,9 @@ func (s HttpServer) findModel(name string) Model {
 	return Model{}
 }
 
-
+/**
+Test page
+ */
 func (s HttpServer)  clientTest(w http.ResponseWriter, r *http.Request) {
 	sourceFile := "./resource/client.html"
 	fmt.Println("Read File: ", sourceFile)
@@ -357,6 +398,16 @@ func (s HttpServer)  clientTest(w http.ResponseWriter, r *http.Request) {
 
 //helpers
 
+type request struct {
+	Model string
+	Relation string
+	Id string
+}
+
+func (r request) String() string {
+	return fmt.Sprintf("request{Model: %s, Id: %s, Relation: %s}", r.Model, r.Id, r.Relation)
+}
+
 func renderJson(w http.ResponseWriter, js string) {
 	w.WriteHeader(200)
 	w.Header().Set("Content-Type", "application/json")
@@ -364,6 +415,60 @@ func renderJson(w http.ResponseWriter, js string) {
 }
 
 
+func parseRequest(path string, req *regexp.Regexp, all bool ) request {
+	res := req.FindStringSubmatch( path )
+
+	var model, id, relation string
+
+	switch len(res) {
+	case 2:
+		model = res[1]
+	case 3:
+		model = res[1]
+		if all {
+			relation = res[2]
+		} else {
+			id = res[2]
+		}
+	case 4:
+		model = res[1]
+		if all {
+			relation = res[2]
+		} else {
+			id = res[2]
+			relation = res[3]
+		}
+	}
+
+	return request{Model:model, Id:id, Relation: relation}
+}
+
+/**
+//TODO check session by header
+ */
+func checkSession (model Model, r *http.Request) bool {
+
+	token := r.Header.Get("Authorization")
+	values := strings.Split(token, " ")
+
+	if len(values) != 2 { 
+		return false
+	}
+
+	switch strings.ToLower(values[0]) {
+	case "token":
+		log.Println("Authorization check token: ", values[1])
+
+		if s, ok :=  sessions[values[1]]; ok {
+			//TODO synh
+			s.Update()
+			log.Println("Find: ", s)
+			return s.IsOpen() && s.CheckAccessModel(model)
+		}
+	}
+
+	return false
+}
 
 func status404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
@@ -373,4 +478,13 @@ func status404(w http.ResponseWriter) {
 func status500(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprint(w, "custom 500")
+}
+
+func status401(w http.ResponseWriter)  {
+	w.WriteHeader(http.StatusUnauthorized)
+	fmt.Fprint(w, "custom 401")
+}
+
+func digestString(s string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }

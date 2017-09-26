@@ -15,6 +15,7 @@ type Configuration struct {
 	Database Database
 	Server Server
 	Models []Model
+	Session Session
 }
 
 func (c Configuration) String () string {
@@ -124,7 +125,7 @@ func (r Role) String () string {
 
 type Token struct {
 	Token string
-	Roles []Role
+	Roles []string
 }
 
 func (t Token) String () string {
