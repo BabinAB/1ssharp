@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"crypto/md5"
+	"sync"
 )
 
 const (
@@ -37,6 +38,8 @@ const (
 )
 
 var regUriAll, regUriOne *regexp.Regexp
+
+var synchronize = &sync.Mutex{}
 
 
 func init()  {
@@ -308,6 +311,10 @@ func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 
 
 func (s HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
+
+	synchronize.Lock()
+	defer func() { synchronize.Unlock() }()
+
 	log.Println("Open session... ")
 
 	body, e := ioutil.ReadAll(r.Body)
@@ -353,6 +360,10 @@ func (s HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HttpServer) sessionClose(w http.ResponseWriter, r *http.Request) {
+
+	synchronize.Lock()
+	defer func() { synchronize.Unlock() }()
+
 	log.Println("Close session: ")
 }
 
@@ -447,6 +458,9 @@ func parseRequest(path string, req *regexp.Regexp, all bool ) request {
 //TODO check session by header
  */
 func checkSession (model Model, r *http.Request) bool {
+
+	synchronize.Lock()
+	defer func() { synchronize.Unlock() }()
 
 	token := r.Header.Get("Authorization")
 	values := strings.Split(token, " ")

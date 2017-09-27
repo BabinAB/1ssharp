@@ -74,6 +74,10 @@ func (s *HttpSession) CreatePublicToken() string {
 
 //TODO check access model name
 func (s *HttpSession) CheckAccessModel(m Model) bool {
+	for _,name := range s.Token.Roles {
+		if name == m.Name {
 
+		}
+	}
 	return true
 }
