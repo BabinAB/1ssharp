@@ -27,18 +27,9 @@ func (cb ConfigurationBuilderPHP)  Build(c lib1ssarp.Configuration){
 
 
 func (cb ConfigurationBuilderPHP)  BuildDataBase(){
-	//TODO create data base
-
-	fmt.Println("Create data base: not yet")
-
-
+	fmt.Println("Create database...")
 	for _, m := range cb.Config.Models {
-
-
 		fmt.Println(m)
-
-
-
 		t := lib1ssarp.Table{cb.Config.Database, m}
 		if !t.Exists() {
 			t.Create()
@@ -51,9 +42,12 @@ func (cb ConfigurationBuilderPHP)  BuildDataBase(){
 
 func (cb ConfigurationBuilderPHP)  BuildFiles(){
 
-	file := cb.Config.Output + "/index.php"
+	files := []string{"index.php", "config.php", "Client.php"}
 
-	ProcessorTemplate("./lib1ssarp/php/templates/index.php", file, cb)
+	for _, file := range files {
+		path := cb.Config.Output + "/" + file
+		ProcessorTemplate("./lib1ssarp/php/templates/" + file, path, cb)
+	}
 }
 
 
