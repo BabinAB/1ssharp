@@ -115,5 +115,72 @@
         "roles" : ["admin"]
       }
     ]
+  },
+  "frontend": {
+    "indexPage" : "12345-page",
+    "components": [
+        {
+          "type"  : "menu",
+          "id"    : "12345-menu",
+          "name"  : "xxsxsxs",
+          "items" : [
+            {
+              "title": "Some item 1",
+              "ref"  : "12345-page"
+            },
+            {
+              "title": "Some item 2",
+              "ref"  : "1234521212-page"
+            }
+          ]
+        },
+        {
+          "type"      : "page",
+          "id"        : "12345-page",
+          "name"      : "Main page"
+        },
+      {
+        "type"      : "page",
+        "id"        : "1234521212-page",
+        "name"      : "Some page"
+      },
+        {
+        "type"      : "table",
+        "id"        : "12345-table",
+        "name"      : "Table users",
+        "options"   : {
+           "nameOption1": "value option 1",
+           "nameOption2": "value option 2"
+        }
+       }
+    ],
+    "composition" : [
+      {
+        "ref" : "12345-page",
+        "children"  : [
+          {
+            "ref" : "12345-menu"
+            //TODO position option
+          },
+          {
+            "ref" : "12345-table"
+            //TODO position option
+          }
+        ]
+      },
+      {
+        "ref" : "1234521212-page",
+        "children"  : [
+          {
+            "ref" : "12345-menu"
+            //TODO position option
+          },
+          {
+            "ref" : "12345-table"
+            //TODO position option
+          }
+        ]
+      }
+    ]
   }
 }
