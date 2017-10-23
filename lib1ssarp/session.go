@@ -6,10 +6,18 @@ import (
 	"fmt"
 )
 
+type ActionModel int
+
 const (
 	TIME_LIVE int64 = 86400
 	SECRET = "123fefefvvvf#222121+87^323lcscc11122njncjc097663th((csacsacsacs"
+	ACTION_READ ActionModel = 1
+	ACTION_EDIT ActionModel = 2
+	ACTION_DELETE ActionModel = 4
+	ACTION_CREATE ActionModel = 8
+
 )
+
 
 var sessions map[string]*HttpSession
 
@@ -18,16 +26,17 @@ func init()  {
 }
 
 
-func NewHttpSession(t Token) *HttpSession {
+func NewHttpSession(t *Token, r []*Role) *HttpSession {
 	unix := time.Now().Unix()
-	s := HttpSession{Token: t, open: true, LastUpdate: unix, Create: unix}
+	s := HttpSession{Token: t, Roles: r, open: true, LastUpdate: unix, Create: unix}
 	s.Update()
 	return &s
 }
 
 
 type HttpSession struct {
-	Token Token
+	Token *Token
+	Roles []*Role
 	LastUpdate int64
 	Create int64
 	open bool
@@ -67,17 +76,24 @@ func (s *HttpSession) Update() {
 	}
 }
 
+/**
+
+ */
 func (s *HttpSession) CreatePublicToken() string {
 	str := s.Token.Token + SECRET + fmt.Sprintf("%d", s.Create)
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(str)))
 }
 
 //TODO check access model name
-func (s *HttpSession) CheckAccessModel(m Model) bool {
-	for _,name := range s.Token.Roles {
-		if name == m.Name {
-
+func (s *HttpSession) CheckAccessModel(m Model, action ActionModel) bool {
+	for _, r := range s.Roles {
+		perm := r.getPermission(m.Name)
+		if nil != perm && perm.CheckAction(action) {
+			return true
 		}
 	}
-	return true
+
+	return false
 }
+
+

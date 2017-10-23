@@ -119,7 +119,7 @@ func (s HttpServer) all(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkSession(m, r) {
+	if !checkSession(m, ACTION_READ, r) {
 		status401(w)
 		return
 	}
@@ -155,7 +155,7 @@ func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkSession(m, r) {
+	if !checkSession(m, ACTION_READ, r) {
 		status401(w)
 		return
 	}
@@ -209,7 +209,7 @@ func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkSession(m, r) {
+	if !checkSession(m, ACTION_CREATE, r) {
 		status401(w)
 		return
 	}
@@ -259,7 +259,7 @@ func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkSession(m, r) {
+	if !checkSession(m,ACTION_EDIT, r) {
 		status401(w)
 		return
 	}
@@ -293,7 +293,7 @@ func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkSession(m, r) {
+	if !checkSession(m, ACTION_DELETE, r) {
 		status401(w)
 		return
 	}
@@ -344,7 +344,15 @@ func (s HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
 		//log.Println(" hash: ", hash, "=", data.Token, "P:", token.Token + data.Sold + "POST")
 		if hash == data.Token {
 			log.Println("Find token: ", token)
-			hs := NewHttpSession(token)
+
+			rl := make([]*Role, len(token.Roles) )
+			//fill roles
+			for i, rn := range token.Roles  {
+				_, role := s.Config.Session.getRole(rn);
+				rl[i] = role
+			}
+
+			hs := NewHttpSession( &token, rl )
 			sessions[hs.CreatePublicToken()] = hs
 
 			renderJson(w, fmt.Sprintf(`{"status": "OK", "session": "%s", "create": "%d"}`,
@@ -457,7 +465,7 @@ func parseRequest(path string, req *regexp.Regexp, all bool ) request {
 /**
 //TODO check session by header
  */
-func checkSession (model Model, r *http.Request) bool {
+func checkSession (model Model, action ActionModel, r *http.Request) bool {
 
 	synchronize.Lock()
 	defer func() { synchronize.Unlock() }()
@@ -474,10 +482,9 @@ func checkSession (model Model, r *http.Request) bool {
 		log.Println("Authorization check token: ", values[1])
 
 		if s, ok :=  sessions[values[1]]; ok {
-			//TODO synh
 			s.Update()
 			log.Println("Find: ", s)
-			return s.IsOpen() && s.CheckAccessModel(model)
+			return s.IsOpen() && s.CheckAccessModel(model, action)
 		}
 	}
 

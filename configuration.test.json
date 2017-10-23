@@ -68,7 +68,14 @@
           "update": true,
           "delete": true,
           "create": true
-        }]
+        },
+          {
+            "model": "role",
+            "read": true,
+            "update": true,
+            "delete": true,
+            "create": true
+          }]
       }
     ],
     "tokens": [

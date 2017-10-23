@@ -110,17 +110,45 @@ type Permission struct {
 	Create bool
 }
 
-func (p Permission) String () string {
+func (p *Permission) String () string {
 	return fmt.Sprintf("Permission{Name: %s}",  p.Model)
 }
+
+
+func (p *Permission) CheckAction(action ActionModel) bool {
+	switch action {
+	case ACTION_CREATE:
+		return p.Create
+	case ACTION_DELETE:
+		return p.Delete
+	case ACTION_EDIT:
+		return p.Update
+	case ACTION_READ:
+		return p.Read
+	}
+	return false
+}
+
 
 type Role  struct {
 	Name string
 	Permissions []Permission
 }
 
-func (r Role) String () string {
+func (r *Role) String () string {
 	return fmt.Sprintf("Role{Name: %s}",  r.Name)
+}
+
+/**
+Get permission role by nameModel(name permission)
+ */
+func (r *Role) getPermission ( modelName string) *Permission {
+	for _, p := range r.Permissions {
+		if p.Model == modelName {
+			return &p
+		}
+	}
+	return nil
 }
 
 type Token struct {
@@ -148,15 +176,15 @@ func (s Session) getToken(token string) (error, Token) {
 	return errors.New("Not found"), Token{}
 }
 
-func (s Session) getRole(name string) (error, Role) {
+func (s Session) getRole(name string) (error, *Role) {
 
 	for _, r := range s.Roles {
 		if r.Name == name {
-			return nil, r
+			return nil, &r
 		}
 	}
 
-	return  errors.New("Not found"), Role{}
+	return  errors.New("Not found"), nil
 }
 
 
