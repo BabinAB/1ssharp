@@ -27,7 +27,6 @@ class Client {
 
 
     public function all($model) {
-        $this->openTokenIsEmpty();
         return $this->query('api/'.$model);
     }
 
@@ -49,29 +48,40 @@ class Client {
         $response = file_get_contents($url, false, $context);
 
         $data = json_decode($response);
-       // var_dump($response);
+
+        if(!$data) {
+            return false;
+        }
+
+      //  var_dump($response);
         return $data;
     }
 
 
-    public function openTokenIsEmpty() {
-        if(is_null($this->token)) {
+    public function openTokenIsEmpty( $force = false) {
+        if(empty($this->getToken()) || $force) {
 
             $sold = md5(time() . __METHOD__);
             $data = $this->query('session', 'POST', [
                 'sold'  => $sold,
-                'token' => md5('xsxksmkxmskxmskxmskxmskx' . $sold . 'POST')
+                'token' => md5($this->getServerToken() . $sold . 'POST')
             ]);
 
 
             if($data && $data->session) {
                 $this->token = $data->session;
+                $_SESSION['token_session_'] = $this->token;
             }
         }
 
     }
 
+    public function getServerToken() {
+        return 'xsxksmkxmskxmskxmskxmskx';
+    }
+
+
     public function getToken() {
-        return $this->token;
+        return isset($_SESSION['token_session_']) ? $_SESSION['token_session_'] : $this->token;
     }
 }

@@ -63,7 +63,7 @@ type HttpServer struct {
 
 
 
-func (s HttpServer) Launch() {
+func (s *HttpServer) Launch() {
 	listen := s.Config.Server.Address()
 	log.Println("listen: ", listen)
 
@@ -74,7 +74,7 @@ func (s HttpServer) Launch() {
 }
 
 
-func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) index(w http.ResponseWriter, r *http.Request) {
 	log.Println("Index page", r.URL.Path, r.Method);
 
 	//simply route
@@ -82,6 +82,8 @@ func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
 	case METHOD_GET:
 		if r.URL.Path == CLIENT_TEST {
 			s.clientTest(w, r)
+		} else if r.URL.Path == CLIENT_SESSION {
+			s.sessionList(w, r) //TODO only dev mode!
 		} else if regUriOne.MatchString(r.URL.Path) {
 			s.one(w, r)
 		} else {
@@ -108,7 +110,7 @@ func (s HttpServer) index(w http.ResponseWriter, r *http.Request) {
 
 //REST methods
 //see http://www.restapitutorial.com/lessons/httpmethods.html
-func (s HttpServer) all(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) all(w http.ResponseWriter, r *http.Request) {
 
 	req := parseRequest(r.URL.Path , regUriAll , true)
 	log.Println("Get all: ", req)
@@ -140,7 +142,7 @@ func (s HttpServer) all(w http.ResponseWriter, r *http.Request) {
 	renderJson(w, string(js))
 }
 
-func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) one(w http.ResponseWriter, r *http.Request) {
 	req := parseRequest(r.URL.Path , regUriOne , false)
 	log.Println("Get model: ", req)
 
@@ -179,7 +181,7 @@ func (s HttpServer) one(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) create(w http.ResponseWriter, r *http.Request) {
 	req := parseRequest(r.URL.Path , regUriAll , false)
 	log.Println("Create Model Name: ", req)
 
@@ -224,7 +226,7 @@ func (s HttpServer) create(w http.ResponseWriter, r *http.Request) {
 /**
 
  */
-func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) update(w http.ResponseWriter, r *http.Request) {
 	req := parseRequest(r.URL.Path , regUriOne , false)
 	log.Println("Update Model Name: ", req)
 
@@ -278,7 +280,7 @@ func (s HttpServer) update(w http.ResponseWriter, r *http.Request) {
 /**
 
  */
-func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 	req := parseRequest(r.URL.Path , regUriOne , false)
 	log.Println("Delete Model Name: ", req)
 
@@ -310,7 +312,7 @@ func (s HttpServer) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func (s HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
 
 	synchronize.Lock()
 	defer func() { synchronize.Unlock() }()
@@ -367,7 +369,7 @@ func (s HttpServer) sessionOpen(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s HttpServer) sessionClose(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) sessionClose(w http.ResponseWriter, r *http.Request) {
 
 	synchronize.Lock()
 	defer func() { synchronize.Unlock() }()
@@ -378,7 +380,7 @@ func (s HttpServer) sessionClose(w http.ResponseWriter, r *http.Request) {
 /**
 
  */
-func (s HttpServer) findModel(name string) Model {
+func (s *HttpServer) findModel(name string) Model {
 	for _, m := range s.Config.Models {
 		if m.Name == name {
 			return m
@@ -390,7 +392,7 @@ func (s HttpServer) findModel(name string) Model {
 /**
 Test page
  */
-func (s HttpServer)  clientTest(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer)  clientTest(w http.ResponseWriter, r *http.Request) {
 	sourceFile := "./resource/client.html"
 	fmt.Println("Read File: ", sourceFile)
 
@@ -412,6 +414,22 @@ func (s HttpServer)  clientTest(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, tpl.String())
 }
+
+/**
+Show all session
+ */
+func (s *HttpServer) sessionList (w http.ResponseWriter, r *http.Request)  {
+
+	js, e := json.Marshal(sessions)
+	if e != nil {
+		log.Println(e)
+		status500(w)
+		return
+	}
+
+	renderJson(w, string(js))
+}
+
 //Server End
 
 
@@ -461,6 +479,9 @@ func parseRequest(path string, req *regexp.Regexp, all bool ) request {
 
 	return request{Model:model, Id:id, Relation: relation}
 }
+
+
+
 
 /**
 //TODO check session by header

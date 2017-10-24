@@ -42,7 +42,7 @@ func (cb ConfigurationBuilderPHP)  BuildDataBase(){
 
 func (cb ConfigurationBuilderPHP)  BuildFiles(){
 
-	files := []string{"index.php", "config.php", "Client.php"}
+	files := []string{"index.php", "init.php", "config.php", "Client.php", "login.php"}
 
 	for _, file := range files {
 		path := cb.Config.Output + "/" + file

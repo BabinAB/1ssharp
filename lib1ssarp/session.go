@@ -43,7 +43,7 @@ type HttpSession struct {
 }
 
 func (s *HttpSession) String()string  {
-	return fmt.Sprintf("HttpSession{Open: %x, Create: %d, LastUpdate: %d}",
+	return fmt.Sprintf("HttpSession{Open: %t, Create: %d, LastUpdate: %d}",
 		s.IsOpen(), s.Create, s.LastUpdate)
 }
 

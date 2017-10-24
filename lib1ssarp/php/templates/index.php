@@ -1,6 +1,7 @@
 <?php
 
 require_once 'config.php';
+require_once 'init.php';
 require_once 'Client.php';
 
 $client = new Client($path);
@@ -10,6 +11,12 @@ $listAll = [];
 
 if(isset($_GET['model'])) {
     $listAll = $client->all($_GET['model']);
+
+
+    if($listAll === false) {
+        header('Location: /login.php');
+        exit(0);
+    }
 }
 
 
@@ -27,34 +34,65 @@ if(isset($_GET['model'])) {
     <body>
 
 
+
+
+
+
+
+
+
+
+
      <div class="container">
 
-
-     <nav class="navbar navbar-default">
-             <div class="container-fluid">
-               <div class="navbar-header">
-                 <a class="navbar-brand" href="#">Project name</a>
-               </div>
-
-             </div>
-           </nav>
+        <ul class="nav">
+        <?php foreach($models as $model): ?>
+         <li class="nav-item">
+             <a class="nav-link" href="/?model=<?php echo $model['name']; ?>"><?php echo $model['name']; ?></a>
+         </li>
+       <?php endforeach; ?>
+        </ul>
 
         <div class="page-header">
             <h1>Language: {{ .Config.Language }}, Version: {{ .Config.Version }} </h1>
         </div>
 
-        <p>Query API to: <?php echo $path; ?></p>
+        <?php /* <p>Query API to: <?php echo $path; ?></p> */ ?>
 
-         <?php foreach($models as $model): ?>
-            <a href="/?model=<?php echo $model['name']; ?>"><?php echo $model['name']; ?></a>
 
-         <?php endforeach; ?>
 
 
 
          <?php if(!empty($listAll)) :?>
+
+
+         <div>
+         <a href="/?model=<?php echo $_GET['model']; ?>&a=new">Add new model</a>
+         </div>
+
             <table class="table">
-         <?php foreach($listAll as $item): ?>
+         <?php foreach($listAll as $n => $item): ?>
+
+
+            <?php if($n == 0): ?>
+            <thead>
+            <tr>
+
+                <?php foreach(array_keys(get_object_vars ($item)) as $key): ?>
+                <th>
+                                <?php echo $key; ?>
+                </th>
+                <?php endforeach ?>
+
+                <th>
+                    Actions
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php endif;  ?>
+
+
 
             <tr>
                 <?php foreach($item as $field): ?>
@@ -62,8 +100,17 @@ if(isset($_GET['model'])) {
                     <?php echo $field; ?>
                 </td>
                 <?php endforeach ?>
+                <td>
+                    <a href="/?model=<?php echo $_GET['model']; ?>&a=edit&id=<?php echo $item->id; ?>">Edit</a>
+                    <a href="/?model=<?php echo $_GET['model']; ?>&a=remove&id=<?php echo $item->id; ?>" onclick="return confirm('?');">Delete</a>
+                </td>
              </tr>
+
+
+
          <?php endforeach ?>
+
+                </tbody>
             </table>
          <?php endif ?>
 
